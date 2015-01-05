@@ -493,16 +493,12 @@ void Adafruit_SH1106::SH1106_data(uint8_t c) {
 
 void Adafruit_SH1106::display(void) {
 	
-	SH1106_command(SH1106_SETLOWCOLUMN | 0x0);  // low col = 0
+    SH1106_command(SH1106_SETLOWCOLUMN | 0x0);  // low col = 0
     SH1106_command(SH1106_SETHIGHCOLUMN | 0x0);  // hi col = 0
     SH1106_command(SH1106_SETSTARTLINE | 0x0); // line #0
 	
   
-    // save I2C bitrate
-#ifndef __SAM3X8E__
-    uint8_t twbrbackup = TWBR;
-    TWBR = 12; // upgrade to 400KHz!
-#endif
+
 
     //Serial.println(TWBR, DEC);
     //Serial.println(TWSR & 0x3, DEC);
@@ -549,7 +545,14 @@ void Adafruit_SH1106::display(void) {
 		
 	}
 	else{
-		for ( i = 0; i < height; i++) {
+		
+	 // save I2C bitrate
+	#ifndef __SAM3X8E__
+    		uint8_t twbrbackup = TWBR;
+    		TWBR = 12; // upgrade to 400KHz!
+	#endif
+	
+	for ( i = 0; i < height; i++) {
 		
 		// send a bunch of data in one xmission
         SH1106_command(0xB0 + i + m_row);//set page address
@@ -560,11 +563,11 @@ void Adafruit_SH1106::display(void) {
 			Wire.beginTransmission(_i2caddr);
             Wire.write(0x40);
             for ( k = 0; k < width; k++, p++) {
-					Wire.write(buffer[p]);
+		Wire.write(buffer[p]);
             }
             Wire.endTransmission();
-        }
-		}
+        	}
+	}
 	}
     
 	
