@@ -173,7 +173,33 @@ void Adafruit_SH1106::begin(uint8_t vccstate, uint8_t i2caddr, bool reset) {
   _i2caddr = i2caddr;
 
   // set pin directions
-  
+  if (sid != -1){
+    pinMode(dc, OUTPUT);
+    pinMode(cs, OUTPUT);
+    csport      = portOutputRegister(digitalPinToPort(cs));
+    cspinmask   = digitalPinToBitMask(cs);
+    dcport      = portOutputRegister(digitalPinToPort(dc));
+    dcpinmask   = digitalPinToBitMask(dc);
+    if (!hwSPI){
+      // set pins for software-SPI
+      pinMode(sid, OUTPUT);
+      pinMode(sclk, OUTPUT);
+      clkport     = portOutputRegister(digitalPinToPort(sclk));
+      clkpinmask  = digitalPinToBitMask(sclk);
+      mosiport    = portOutputRegister(digitalPinToPort(sid));
+      mosipinmask = digitalPinToBitMask(sid);
+      }
+    if (hwSPI){
+      SPI.begin ();
+#ifdef __SAM3X8E__
+      SPI.setClockDivider (9); // 9.3 MHz
+#else
+      SPI.setClockDivider (SPI_CLOCK_DIV2); // 8 MHz
+#endif
+      }
+    }
+  else
+  {
     // I2C Init
     Wire.begin();
 #ifdef __SAM3X8E__
@@ -181,7 +207,7 @@ void Adafruit_SH1106::begin(uint8_t vccstate, uint8_t i2caddr, bool reset) {
     TWI1->TWI_CWGR = 0;
     TWI1->TWI_CWGR = ((VARIANT_MCK / (2 * 400000)) - 4) * 0x101;
 #endif
-  
+  }
 
   if (reset) {
     // Setup reset pin direction (used by both SPI and I2C)  
@@ -320,12 +346,28 @@ void Adafruit_SH1106::invertDisplay(uint8_t i) {
 }
 
 void Adafruit_SH1106::SH1106_command(uint8_t c) { 
+  if (sid != -1)
+  {
+    // SPI
+    //digitalWrite(cs, HIGH);
+    *csport |= cspinmask;
+    //digitalWrite(dc, LOW);
+    *dcport &= ~dcpinmask;
+    //digitalWrite(cs, LOW);
+    *csport &= ~cspinmask;
+    fastSPIwrite(c);
+    //digitalWrite(cs, HIGH);
+    *csport |= cspinmask;
+  }
+  else
+  {
     // I2C
     uint8_t control = 0x00;   // Co = 0, D/C = 0
     Wire.beginTransmission(_i2caddr);
     WIRE_WRITE(control);
     WIRE_WRITE(c);
     Wire.endTransmission();
+  }
  
 }
 
@@ -420,12 +462,28 @@ void Adafruit_SH1106::dim(boolean dim) {
 
 void Adafruit_SH1106::SH1106_data(uint8_t c) {
  
+  if (sid != -1)
+  {
+    // SPI
+    //digitalWrite(cs, HIGH);
+    *csport |= cspinmask;
+    //digitalWrite(dc, HIGH);
+    *dcport |= dcpinmask;
+    //digitalWrite(cs, LOW);
+    *csport &= ~cspinmask;
+    fastSPIwrite(c);
+    //digitalWrite(cs, HIGH);
+    *csport |= cspinmask;
+  }
+  else
+  {
     // I2C
     uint8_t control = 0x40;   // Co = 0, D/C = 1
     Wire.beginTransmission(_i2caddr);
     WIRE_WRITE(control);
     WIRE_WRITE(c);
     Wire.endTransmission();
+  }
   
 }
 /*#define SH1106_SETLOWCOLUMN 0x00
@@ -466,21 +524,49 @@ void Adafruit_SH1106::display(void) {
 	
 	byte i, j, k =0;
 	
-    for ( i = 0; i < height; i++) {
-      // send a bunch of data in one xmission
+	if(sid != -1)
+	{
+			
+		for ( i = 0; i < height; i++) {
+		
+		// send a bunch of data in one xmission
         SH1106_command(0xB0 + i + m_row);//set page address
         SH1106_command(m_col & 0xf);//set lower column address
         SH1106_command(0x10 | (m_col >> 4));//set higher column address
-
-        for( j = 0; j < 8; j++){
-            Wire.beginTransmission(_i2caddr);
+		
+        for( j = 0; j < 8; j++){        
+			// SPI
+			*csport |= cspinmask;
+			*dcport |= dcpinmask;
+			*csport &= ~cspinmask;
+			
+            for ( k = 0; k < width; k++, p++) {
+					fastSPIwrite(buffer[p]);
+            }
+            *csport |= cspinmask;
+        }
+		}
+		
+	}
+	else{
+		for ( i = 0; i < height; i++) {
+		
+		// send a bunch of data in one xmission
+        SH1106_command(0xB0 + i + m_row);//set page address
+        SH1106_command(m_col & 0xf);//set lower column address
+        SH1106_command(0x10 | (m_col >> 4));//set higher column address
+		
+        for( j = 0; j < 8; j++){        
+			Wire.beginTransmission(_i2caddr);
             Wire.write(0x40);
             for ( k = 0; k < width; k++, p++) {
 					Wire.write(buffer[p]);
             }
             Wire.endTransmission();
         }
-    }
+		}
+	}
+    
 	
 #ifndef __SAM3X8E__
     TWBR = twbrbackup;
@@ -561,7 +647,7 @@ void Adafruit_SH1106::clearDisplay(void) {
 
 inline void Adafruit_SH1106::fastSPIwrite(uint8_t d) {
   
-  /*if(hwSPI) {
+  if(hwSPI) {
     (void)SPI.transfer(d);
   } else {
     for(uint8_t bit = 0x80; bit; bit >>= 1) {
@@ -570,7 +656,7 @@ inline void Adafruit_SH1106::fastSPIwrite(uint8_t d) {
       else        *mosiport &= ~mosipinmask;
       *clkport |=  clkpinmask;
     }
-  }*/
+  }
   //*csport |= cspinmask;
 }
 
