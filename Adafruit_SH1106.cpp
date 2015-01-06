@@ -568,13 +568,11 @@ void Adafruit_SH1106::display(void) {
             Wire.endTransmission();
         	}
 	}
-	}
-    
 	
-#ifndef __SAM3X8E__
-    TWBR = twbrbackup;
-#endif
-  
+	#ifndef __SAM3X8E__
+    		TWBR = twbrbackup;
+	#endif
+	}
 }
 
 /*void Adafruit_SH1106::display(void) {
