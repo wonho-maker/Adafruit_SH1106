@@ -438,6 +438,7 @@ void Adafruit_SH1106::startscrolldiagleft(uint8_t start, uint8_t stop){
 void Adafruit_SH1106::stopscroll(void){
   SH1106_command(SH1106_DEACTIVATE_SCROLL);
 }
+*/
 
 // Dim the display
 // dim = true: display is dimmed
@@ -458,7 +459,7 @@ void Adafruit_SH1106::dim(boolean dim) {
   // it is useful to dim the display
   SH1106_command(SH1106_SETCONTRAST);
   SH1106_command(contrast);
-}*/
+}
 
 void Adafruit_SH1106::SH1106_data(uint8_t c) {
  
