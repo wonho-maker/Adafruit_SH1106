@@ -551,7 +551,7 @@ void Adafruit_SH1106::display(void) {
 	else{
 		
 	 // save I2C bitrate
-    #ifdef __AVR__
+    #ifdef TWBR
     		uint8_t twbrbackup = TWBR;
     		TWBR = 12; // upgrade to 400KHz!
 	#endif
@@ -573,7 +573,7 @@ void Adafruit_SH1106::display(void) {
         	}
 	}
 
-    #ifdef __AVR__
+    #ifdef TWBR
     		TWBR = twbrbackup;
 	#endif
 	}
