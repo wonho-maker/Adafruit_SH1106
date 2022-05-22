@@ -27,19 +27,22 @@ However, SH1106 driver don't provide several functions such as scroll commands.
 *********************************************************************/
 
 #if ARDUINO >= 100
- #include "Arduino.h"
- #define WIRE_WRITE Wire.write
+    #include "Arduino.h"
+    #define WIRE_WRITE Wire.write
 #else
- #include "WProgram.h"
-  #define WIRE_WRITE Wire.send
+    #include "WProgram.h"
+    #define WIRE_WRITE Wire.send
 #endif
 
 #ifdef __SAM3X8E__
- typedef volatile RwReg PortReg;
- typedef uint32_t PortMask;
+    typedef volatile RwReg PortReg;
+    typedef uint32_t PortMask;
+#elif defined(ARDUINO_ARCH_ESP32) || defined(ESP32) || defined(ARDUINO_ARCH_ESP8266) || defined(ESP8266)
+    typedef volatile uint32_t PortReg;
+    typedef uint32_t PortMask;
 #else
-  typedef volatile uint8_t PortReg;
-  typedef uint8_t PortMask;
+    typedef volatile uint8_t PortReg;
+    typedef uint8_t PortMask;
 #endif
 
 #include <SPI.h>
